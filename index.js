@@ -101,17 +101,26 @@ app.get('/search_inventory', function(req, res){
     else {
         maxPrice = req.query.maxPrice;
     }
-    var sql = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id
+    var sql = `select count(*) as count from inventory i join brand b on i.brand_id = b.id 
             where i.name like "%${req.query.name}%" and
             i.gender like "${req.query.gender}%" and
             b.name like "%${req.query.brand}%" and
             i.price >= "${minPrice}" and
-            i.price <= "${maxPrice}"`;
-
+            i.price <= "${maxPrice}"`
+    var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id
+            where i.name like "%${req.query.name}%" and
+            i.gender like "${req.query.gender}%" and
+            b.name like "%${req.query.brand}%" and
+            i.price >= "${minPrice}" and
+            i.price <= "${maxPrice}" limit ${req.query.pagination[0]}, ${req.query.pagination[1]}`;
     conn.query(sql, (err, result) => {
-        console.log(result)
         if(err) throw err;
-        res.send({ listInventory: result })
+
+        conn.query(sql1, (err1, result1) => {
+
+            if(err1) throw err1;
+            res.send({ pagecount: result, listInventory: result1 })
+        })
     })
 })
 
@@ -145,41 +154,47 @@ app.get('/not_exist_color', function(req,res){
 })
 
 app.get('/inventory', function(req,res){
+    console.log(req.query.pagination)
+    var sql = `select count(*) as count from inventory;`
     var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, b.name as brand, i.brand_id 
-                from inventory i join brand b on i.brand_id = b.id;`;
+                from inventory i join brand b on i.brand_id = b.id limit ${req.query.pagination[0]}, ${req.query.pagination[1]};`;
     var sql2 = `select * from brand;`;
     var sql3 = `select * from color order by name;`;
     var sql4 = `select * from size order by name;`;
     var sql5 = `select count(*) as total from color;`
     var sql6 = `select count(*) as total from size;`
     var sql7 = `select distinct s.product_id, s.color_id from stock s join color c on s.color_id = c.id`;
-    conn.query(sql1, (err1, result1) => {
-        if(err1) throw err1;
+    conn.query(sql, (err, result) => {
+        if(err) throw err;
 
-        conn.query(sql2, (err2, result2) => {
-            if(err2) throw err2;
+        conn.query(sql1, (err1, result1) => {
+            if(err1) throw err1;
 
-            conn.query(sql3, (err3, result3) => {
-                if(err3) throw err3;
+            conn.query(sql2, (err2, result2) => {
+                if(err2) throw err2;
 
-                conn.query(sql4, (err4, result4) => {
-                    if(err4) throw err4;
+                conn.query(sql3, (err3, result3) => {
+                    if(err3) throw err3;
 
-                    conn.query(sql5, (err5, result5) => {
-                        if(err5) throw err5;
+                    conn.query(sql4, (err4, result4) => {
+                        if(err4) throw err4;
 
-                        conn.query(sql6, (err6, result6) => {
-                            if(err6) throw err6;
+                        conn.query(sql5, (err5, result5) => {
+                            if(err5) throw err5;
 
-                            conn.query(sql7, (err7, result7) => {
-                                if(err7) throw err7;
+                            conn.query(sql6, (err6, result6) => {
+                                if(err6) throw err6;
 
-                                res.send({ listInventory: result1, listCategory: result2, listBrand: result2, listColor: result3, listSize: result4, color_count: result5, size_count: result6, distinct_items: result7 })
+                                conn.query(sql7, (err7, result7) => {
+                                    if(err7) throw err7;
+
+                                    res.send({ pagecount: result, listInventory: result1, listCategory: result2, listBrand: result2, listColor: result3, listSize: result4, color_count: result5, size_count: result6, distinct_items: result7 })
+                                })
                             })
                         })
                     })
-                })
-            })     
+                })     
+            })
         })
     })
 })
