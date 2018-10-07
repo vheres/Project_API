@@ -89,6 +89,7 @@ app.get('/detail_select_inventory', function(req, res){
 })
 
 app.get('/search_inventory', function(req, res){
+    console.log(req.query.pagination[1])
     if (req.query.minPrice === '') {
         var minPrice = 0;
     }
@@ -113,10 +114,13 @@ app.get('/search_inventory', function(req, res){
             b.name like "%${req.query.brand}%" and
             i.price >= "${minPrice}" and
             i.price <= "${maxPrice}" limit ${req.query.pagination[0]}, ${req.query.pagination[1]}`;
+            console.log(sql1)
     conn.query(sql, (err, result) => {
         if(err) throw err;
 
         conn.query(sql1, (err1, result1) => {
+            console.log('result1')
+            console.log(result1)
 
             if(err1) throw err1;
             res.send({ pagecount: result, listInventory: result1 })
@@ -154,10 +158,33 @@ app.get('/not_exist_color', function(req,res){
 })
 
 app.get('/inventory', function(req,res){
-    console.log(req.query.pagination)
-    var sql = `select count(*) as count from inventory;`
-    var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, b.name as brand, i.brand_id 
-                from inventory i join brand b on i.brand_id = b.id limit ${req.query.pagination[0]}, ${req.query.pagination[1]};`;
+    if (req.query.minPrice === '') {
+        var minPrice = 0;
+    }
+    else {
+        minPrice = req.query.minPrice;
+    }
+    if (req.query.maxPrice === '') {
+        var maxPrice = 999999999;
+    }
+    else {
+        maxPrice = req.query.maxPrice;
+    }
+    var sql = `select count(*) as count from inventory i join brand b on i.brand_id = b.id 
+                where i.name like "%${req.query.name}%" and
+                i.gender like "${req.query.gender}%" and
+                b.name like "%${req.query.brand}%" and
+                i.price >= "${minPrice}" and
+                i.price <= "${maxPrice}"`
+    var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id
+                where i.name like "%${req.query.name}%" and
+                i.gender like "${req.query.gender}%" and
+                b.name like "%${req.query.brand}%" and
+                i.price >= "${minPrice}" and
+                i.price <= "${maxPrice}" limit ${req.query.pagination[0]}, ${req.query.pagination[1]}`
+                console.log(sql1)
+    // var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, b.name as brand, i.brand_id 
+    //             from inventory i join brand b on i.brand_id = b.id limit ${req.query.pagination[0]}, ${req.query.pagination[1]};`;
     var sql2 = `select * from brand;`;
     var sql3 = `select * from color order by name;`;
     var sql4 = `select * from size order by name;`;
