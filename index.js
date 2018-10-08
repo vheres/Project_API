@@ -256,11 +256,7 @@ app.post('/inventory', function(req, res){
     conn.query(sql, data, (err, result) => {
         if(err) throw err;
 
-        var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id;`
-        conn.query(sql1, (err1, result1) => {
-            if(err1) throw err1;
-            res.send({ listInventory: result1 })
-        })
+            res.send({ result })
     })
 })
 
@@ -470,17 +466,12 @@ app.post('/check_out', function(req, res) {
 app.delete('/inventory', function(req, res){
     var sql = `delete from inventory where id = ${req.query.id}`
     var sql1 = `delete from stock where product_id = ${req.query.id}`
-    var sql2 = `select i.id, i.link, i.name, i.description, i.price, i.gender, b.name as brand, i.brand_id from inventory i join brand b on i.brand_id = b.id;`
     conn.query(sql, (err, result) => {
         if(err) throw err;
  
         conn.query(sql1, (err1, result1) => {
             if(err1) throw err1;
-
-            conn.query(sql2, (err2, result2) => {
-                if(err2) throw err2;
-                res.send({ listInventory: result2 })
-            })           
+            res.send({result1})
         })
     })
 })
@@ -501,10 +492,17 @@ app.delete('/remove_cart_item', function(req, res){
     })
 })
 
-app.delete('/remove_variant', function(req, res){
+app.post('/remove_variant', function(req, res){
+    console.log(req.body)
     var sql = `delete from stock where product_id = ${req.query.id} and color_id = ${req.body.color_id}`
-    var sql1 = `select st.id, st.product_id, st.color_id, c.name as color, st.size_id, si.name as size, st.stock from stock st join color c on st.color_id = c.id join size si on st.size_id = si.id where product_id = ${req.body.product_id} order by color, size;`
-    var sql2 = `select st.color_id, c.name as color from stock st join color c on st.color_id = c.id where product_id = ${req.body.product_id} group by color order by color`
+    var sql1 = `select st.id, st.product_id, st.color_id, c.name as color, st.size_id, si.name as size, st.stock from stock st join color c on st.color_id = c.id join size si on st.size_id = si.id where product_id = ${req.query.id} order by color, size;`
+    var sql2 = `select st.color_id, c.name as color from stock st join color c on st.color_id = c.id where product_id = ${req.query.id} group by color order by color`
+    console.log('sql')
+    console.log(sql)
+    console.log('sql1')
+    console.log(sql1)
+    console.log('sql2')
+    console.log(sql2)
     conn.query(sql, (err, result) => {
         if(err) throw err;
  
