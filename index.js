@@ -23,6 +23,14 @@ app.use(url);
 app.use(bodyParser.json());
 app.use(cors());
 
+app.get('/featured', function(req, res) {
+    var sql = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id order by i.id desc limit 0, 10;`
+    conn.query(sql, (err, result) => {
+        if(err) throw err;
+        res.send({featured: result})
+    })
+})
+
 app.get('/cart', function(req, res) {
     var sql = `select ca.id, ca.user_id, u.username, ca.product_id, i.link, i.name as product_name, i.gender, i.brand_id, b.name as brand, ca.color_id, co.name as color, ca.size_id, si.name as size, ca.quantity, ca.price, st.id as stock_id
     from cart ca join users u on ca.user_id = u.id join inventory i on ca.product_id = i.id join brand b on i.brand_id = b.id join color co on ca.color_id = co.id join size si on ca.size_id = si.id join stock st on st.product_id = i.id and st.color_id = co.id and st.size_id = si.id
@@ -35,7 +43,8 @@ app.get('/cart', function(req, res) {
 })
 
 app.get('/transaction_history', function(req, res) {
-    var sql = `select * from transaction where user_id = ${req.query.id};`
+    var sql = `select * from transaction where user_id = ${req.query.id} and date between '${req.query.date[0]}' and '${req.query.date[1]}';`
+    console.log(sql)
     conn.query(sql, (err, result) => {
         if(err) throw err;
         console.log(result)
@@ -182,9 +191,6 @@ app.get('/inventory', function(req,res){
                 b.name like "%${req.query.brand}%" and
                 i.price >= "${minPrice}" and
                 i.price <= "${maxPrice}" limit ${req.query.pagination[0]}, ${req.query.pagination[1]}`
-                console.log(sql1)
-    // var sql1 = `select i.id, i.link, i.name, i.description, i.price, i.gender, b.name as brand, i.brand_id 
-    //             from inventory i join brand b on i.brand_id = b.id limit ${req.query.pagination[0]}, ${req.query.pagination[1]};`;
     var sql2 = `select * from brand;`;
     var sql3 = `select * from color order by name;`;
     var sql4 = `select * from size order by name;`;
