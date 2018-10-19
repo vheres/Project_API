@@ -23,6 +23,14 @@ app.use(url);
 app.use(bodyParser.json());
 app.use(cors());
 
+app.get('/autocompletion', function(req, res) {
+    var sql = `select name from inventory`
+    conn.query(sql, (err, result) => {
+        if (err) throw err;
+        res.send(result)
+    })
+})
+
 app.get('/featured', function(req, res) {
     var sql = `select i.id, i.link, i.name, i.description, i.price, i.gender, i.brand_id, b.name as brand from inventory i join brand b on i.brand_id = b.id order by i.id desc limit 0, 10;`
     conn.query(sql, (err, result) => {
@@ -32,13 +40,31 @@ app.get('/featured', function(req, res) {
 })
 
 app.get('/cart', function(req, res) {
-    var sql = `select ca.id, ca.user_id, u.username, ca.product_id, i.link, i.name as product_name, i.gender, i.brand_id, b.name as brand, ca.color_id, co.name as color, ca.size_id, si.name as size, ca.quantity, ca.price, st.id as stock_id
+    var sql = `select ca.id, ca.user_id, u.firstname, ca.product_id, i.link, i.name as product_name, i.gender, i.brand_id, b.name as brand, ca.color_id, co.name as color, ca.size_id, si.name as size, ca.quantity, ca.price, st.id as stock_id
     from cart ca join users u on ca.user_id = u.id join inventory i on ca.product_id = i.id join brand b on i.brand_id = b.id join color co on ca.color_id = co.id join size si on ca.size_id = si.id join stock st on st.product_id = i.id and st.color_id = co.id and st.size_id = si.id
     where user_id = ${req.query.id};`
     conn.query(sql, (err, result) => {
         if(err) throw err;
 
         res.send({ cart: result })
+    })
+})
+
+app.get('/profile_info', function(req,res) {
+    var sql = `select * from users where id = ${req.query.id}`
+    conn.query(sql, (err, result) => {
+        if (err) throw err;
+        res.send({result})
+    })
+})
+
+app.get('/destination', function(req,res){
+
+    sql = `SELECT * FROM destination`
+    
+    conn.query(sql, (err,results)=>{
+        if(err) throw err
+        res.send(results)
     })
 })
 
@@ -484,7 +510,7 @@ app.delete('/inventory', function(req, res){
 
 app.delete('/remove_cart_item', function(req, res){
     var sql = `delete from cart where id = ${req.query.cart_id}`
-    var sql1 = `select ca.id, ca.user_id, u.username, ca.product_id, i.link, i.name as product_name, i.gender, i.brand_id, b.name as brand, ca.color_id, co.name as color, ca.size_id, si.name as size, ca.quantity, ca.price, st.id as stock_id 
+    var sql1 = `select ca.id, ca.user_id, u.firstname, ca.product_id, i.link, i.name as product_name, i.gender, i.brand_id, b.name as brand, ca.color_id, co.name as color, ca.size_id, si.name as size, ca.quantity, ca.price, st.id as stock_id 
     from cart ca join users u on ca.user_id = u.id join inventory i on ca.product_id = i.id join brand b on i.brand_id = b.id join color co on ca.color_id = co.id join size si on ca.size_id = si.id join stock st on st.product_id = i.id and st.color_id = co.id and st.size_id = si.id
     where user_id = ${req.query.user_id}`
     conn.query(sql, (err, result) => {
@@ -557,14 +583,33 @@ app.put('/edit_product', function(req, res){
     })
 })
 
+app.put('/users/:id', function(req,res){
+    var data = {
+        gender: req.body.gender,
+        phone: req.body.phone,
+        address: req.body.address,
+        kota: req.body.kota,
+        kodepos: req.body.kodepos,
+        destination_code: req.body.destination_code
+    }
+
+    sql = `UPDATE users SET ? WHERE id = ${req.params.id}`
+    
+    conn.query(sql, data, (err,results)=>{
+        if(err) throw err
+        res.send(results)
+    })
+})
+
 app.get('/users', function(req, res){
     if (Object.keys(req.query).length === 2) {
         var cipher = crypto.createHmac("sha256", "password").update(req.query.password).digest("hex");
         var sql = "select * from users where email = '" + req.query.email + "' and password = '" + cipher + "';";
         console.log('executing login procedure')
         conn.query(sql, (err, result) => {
+            console.log(result)
             if(err) throw err;
-            res.send({id:result[0].id, username: result[0].username, email: result[0].email});
+            res.send({id:result[0].id, firstname: result[0].firstname, category:result[0].category, email: result[0].email});
         })
     }
     else if (Object.keys(req.query).length === 1) {
@@ -572,7 +617,7 @@ app.get('/users', function(req, res){
         console.log('executing keep login procedure')
         conn.query(sql, (err, result) => {
             if(err) throw err;
-            res.send({id:result[0].id, username: result[0].username, email: result[0].email});
+            res.send({id:result[0].id, firstname: result[0].firstname, category:result[0].category, email: result[0].email});
         })
     }
     
@@ -581,12 +626,20 @@ app.get('/users', function(req, res){
 app.post('/users', function(req, res) {
     var cipher = crypto.createHmac("sha256", "password").update(req.body.password).digest("hex")
     var data = {
-        username: req.body.username,
+        firstname: req.body.firstname,
+        lastname: req.body.lastname,
+        gender: req.body.gender,
+        phone: req.body.phone,
         email: req.body.email,
-        password: cipher
+        password: cipher,
+        address: req.body.address,
+        kota: req.body.kota,
+        kodepos: req.body.kodepos,
+        destination_code: req.body.destination_code,
+        category: 'customer'
     }
     console.log(cipher);
-    var sql = `select * from users where username = '${req.body.username}' or email = '${req.body.email}'`
+    var sql = `select * from users where email = '${req.body.email}'`
     var sql1 = `insert into users set ?`;
     var sql2 = `select * from users where email = '${req.body.email}' and password = '${cipher}'`;
     conn.query(sql, (err, result) => {
@@ -594,15 +647,13 @@ app.post('/users', function(req, res) {
             conn.query(sql1, data, (err1, result1) => {
                 if(err1) throw err1;       
                 conn.query(sql2, (err2, result2) => {
-                    console.log('result2')
-                    console.log(result2)
                     if(err2) throw err2;
-                    res.send({id:result2[0].id, username: result2[0].username, email: result2[0].email})
+                    res.send({id:result2[0].id, firstname: result2[0].firstname, category:result2[0].category, email: result2[0].email})
                 })
             })   
         }
         else {
-            res.send({ error: `username or email already exist!`})
+            res.send({ error: `email already exist!`})
         } 
     })
 })
